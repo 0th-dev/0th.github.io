@@ -7,6 +7,7 @@
 <textarea id="data" style="width: 100%; height: 200px"></textarea><br/>
 <button onclick="onButton()" style="background-color: crimson; color: white; width: 100px; height: 50px; margin: 10px; border: none;">GO!</button><br/>
 <textarea id="result" style="width: 100%; height: 200px"></textarea><br/>
+<div id="s-row">Total: <span id="total">0.00</span> EUR (should be <span id="ch-sum">0.00</span> EUR)</div>
 Punkte: <span id="amp">0</span><br/>
 <button onclick="download()" style="background-color: darkslategray; color: white; width: 100px; height: 50px; margin: 10px; border: none;">Download CSV!</button>
 <script>
@@ -26,17 +27,38 @@ Punkte: <span id="amp">0</span><br/>
         const patternPrime = /([+-]{1})(\d+)\sAMAZON\s/gi;
 
         let match;
+        let total = 0;
 
         document.getElementById('result').value = '';
 
         while (match = patternTransaction.exec(data)){
+            let sum = match[5] + match[4];
+
+            total += parseFloat(sum.replace('.', '').replace(',', '.'));
+
             rows.push([
                 match[1],
                 match[2],
                 match[3],
-                match[5] + match[4],
+                sum,
             ]);
             document.getElementById('result').value += match.slice(1,4).join(';') + ';' + match[5] + match[4] + "\n";
+        }
+
+        const patternAccState = /Neuer Kontostand ([\d\.,]+)\s([+-]{1})/gi;
+        match = patternAccState.exec(data);
+        let chSum = match[2] + match[1];
+        chSum = parseFloat(chSum.replace('.', '').replace(',', '.'));
+
+        total = total.toFixed(2);
+        document.getElementById('total').innerText = total;
+
+        document.getElementById('ch-sum').innerText = chSum;
+
+        if (chSum == total) {
+            document.getElementById('s-row').style.color = 'green';
+        } else {
+            document.getElementById('s-row').style.color = 'red';
         }
 
         let amp = 0;
