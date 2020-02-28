@@ -27,6 +27,8 @@ Punkte: <span id="amp">0</span><br/>
 
         let match;
 
+        document.getElementById('result').value = '';
+
         while (match = patternTransaction.exec(data)){
             rows.push([
                 match[1],
