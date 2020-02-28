@@ -1,0 +1,100 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<textarea id="data" style="width: 100%; height: 200px"></textarea><br/>
+<button onclick="onButton()" style="background-color: crimson; color: white; width: 100px; height: 50px; margin: 10px; border: none;">GO!</button><br/>
+<textarea id="result" style="width: 100%; height: 200px"></textarea><br/>
+Punkte: <span id="amp">0</span><br/>
+<button onclick="download()" style="background-color: darkslategray; color: white; width: 100px; height: 50px; margin: 10px; border: none;">Download CSV!</button>
+<script>
+    let rows = [
+        [
+            'Kaufdatum',
+            'Umsatz/Ort',
+            'Buchungsdatum',
+            'Betrag in Euro'
+        ]
+    ];
+
+    function onButton() {
+        const data = document.getElementById('data').value;
+
+        const patternTransaction = /(\d{2}\.\d{2}\.\d{4})\s(.+?)\s(\d{2}\.\d{2}\.\d{4})\s([\d\.]+,\d{2})\s([+-]{1})/gi;
+        const patternPrime = /([+-]{1})(\d+)\sAMAZON\s/gi;
+
+        let match;
+
+        while (match = patternTransaction.exec(data)){
+            rows.push([
+                match[1],
+                match[2],
+                match[3],
+                match[5] + match[4],
+            ]);
+            document.getElementById('result').value += match.slice(1,3).join(';') + ';' + match[5] + match[4] + "\n";
+        }
+
+        let amp = 0;
+
+        while (match = patternPrime.exec(data)){
+            if (match[1] === '+') {
+                amp += parseInt(match[2]);
+            } else if (match[1] === '-') {
+                amp -= parseInt(match[2]);
+            }
+        }
+
+        document.getElementById('amp').innerText = amp;
+    }
+
+    function download() {
+        exportToCsv('invoice.csv', rows);
+    }
+
+    function exportToCsv(filename, rows) {
+        var processRow = function (row) {
+            var finalVal = '';
+            for (var j = 0; j < row.length; j++) {
+                var innerValue = row[j] === null ? '' : row[j].toString();
+                if (row[j] instanceof Date) {
+                    innerValue = row[j].toLocaleString();
+                };
+                var result = innerValue.replace(/"/g, '""');
+                if (result.search(/("|,|\n)/g) >= 0)
+                    result = '"' + result + '"';
+                if (j > 0)
+                    finalVal += ',';
+                finalVal += result;
+            }
+            return finalVal + '\n';
+        };
+
+        var csvFile = '';
+        for (var i = 0; i < rows.length; i++) {
+            csvFile += processRow(rows[i]);
+        }
+
+        var blob = new Blob([csvFile], { type: 'text/csv;charset=utf-8;' });
+        if (navigator.msSaveBlob) { // IE 10+
+            navigator.msSaveBlob(blob, filename);
+        } else {
+            var link = document.createElement("a");
+            if (link.download !== undefined) { // feature detection
+                // Browsers that support HTML5 download attribute
+                var url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", filename);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        }
+    }
+</script>
+
+</body>
+</html>
