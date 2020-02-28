@@ -11,19 +11,24 @@
 Punkte: <span id="amp">0</span><br/>
 <button onclick="download()" style="background-color: darkslategray; color: white; width: 100px; height: 50px; margin: 10px; border: none;">Download CSV!</button>
 <script>
-    let rows = [
-        [
-            'Kaufdatum',
-            'Umsatz/Ort',
-            'Buchungsdatum',
-            'Betrag in Euro'
-        ]
-    ];
+    let rows = [];
 
     function onButton() {
+        rows = [
+            [
+                'Kaufdatum',
+                'Umsatz/Ort',
+                'Buchungsdatum',
+                'Waerung',
+                'Betrag',
+                'Kurs',
+                'Betrag in Euro',
+            ]
+        ];
         const data = document.getElementById('data').value;
 
-        const patternTransaction = /(\d{2}\.\d{2}\.\d{4})\s(.+?)\s(\d{2}\.\d{2}\.\d{4})\s([\d\.]+,\d{2})\s([+-]{1})/gi;
+        const patternAbroad = /AUSLANDSEINSATZENTGELT\s([\d\.]+,\d{2})\s([+-]{1})/gi;
+        const patternTransaction = /(\d{2}\.\d{2}\.\d{4})\s(.+?)\s(\d{2}\.\d{2}\.\d{4})(?:\s([A-Z]{3})\s([\d\.]+,\d{2})\s([+-]{1})\s([\d\.]+,\d+))?\s([\d\.]+,\d{2})\s([+-]{1})(?:(.+)AUSLANDSEINSATZENTGELT\s([\d\.]+,\d{2})\s([+-]{1}))?/gi;
         const patternPrime = /([+-]{1})(\d+)\sAMAZON\s/gi;
 
         let match;
@@ -31,18 +36,37 @@ Punkte: <span id="amp">0</span><br/>
 
         document.getElementById('result').value = '';
 
-        while (match = patternTransaction.exec(data)){
-            let sum = match[5] + match[4];
+        while (match = patternTransaction.exec(data)) {
+            let sum = match[9] + match[8];
 
-            total += parseFloat(sum.replace('.', '').replace(',', '.'));
+            sum = sum.replace('.', '');
+            total += parseFloat(sum.replace(',', '.'));
+
+            if (match[4] !== undefined) {
+                match[5] = match[6] + match[5];
+                match[5] = match[5].replace('.', '');
+            } else {
+                match[4] = '';
+                match[5] = '';
+                match[6] = '';
+            }
+
+            if (match[7] !== undefined) {
+                match[7] = match[7].replace('.', '');
+            } else {
+                match[7] = '';
+            }
 
             rows.push([
                 match[1],
                 match[2],
                 match[3],
+                match[4],
+                match[5],
+                match[7],
                 sum,
             ]);
-            document.getElementById('result').value += match.slice(1,4).join(';') + ';' + match[5] + match[4] + "\n";
+            document.getElementById('result').value += match.slice(1,4).join(';') + ';' + match[4] + ';' + match[5] + ';' + match[7] + ';' + sum + "\n";
         }
 
         const patternAccState = /Neuer Kontostand ([\d\.,]+)\s([+-]{1})/gi;
@@ -59,6 +83,28 @@ Punkte: <span id="amp">0</span><br/>
             document.getElementById('s-row').style.color = 'green';
         } else {
             document.getElementById('s-row').style.color = 'red';
+        }
+
+        let aus = [];
+
+        while (match = patternAbroad.exec(data)){
+            let geb = match[2] + match[1];
+            geb = geb.replace('.', '');
+
+            total += parseFloat(geb.replace(',', '.'));
+
+            rows.push([
+                '',
+                'AUSLANDSEINSATZENTGELT',
+                '',
+                '',
+                '',
+                '',
+                geb,
+            ]);
+            document.getElementById('result').value += ';AUSLANDSEINSATZENTGELT;;;;;' + geb + "\n";
+
+            aus.push(geb);
         }
 
         let amp = 0;
