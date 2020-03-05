@@ -28,7 +28,7 @@ Punkte: <span id="amp">0</span><br/>
         const data = document.getElementById('data').value;
 
         const patternAbroad = /AUSLANDSEINSATZENTGELT\s([\d\.]+,\d{2})\s([+-]{1})/gi;
-        const patternTransaction = /(\d{2}\.\d{2}\.\d{4})\s(.+?)\s(\d{2}\.\d{2}\.\d{4})(?:\s([A-Z]{3})\s([\d\.]+,\d{2})\s([+-]{1})\s([\d\.]+,\d+))?\s([\d\.]+,\d{2})\s([+-]{1})(?:(.+)AUSLANDSEINSATZENTGELT\s([\d\.]+,\d{2})\s([+-]{1}))?/gi;
+        const patternTransaction = /(\d{2}\.\d{2}\.\d{4})\s(.+?)\s(\d{2}\.\d{2}\.\d{4})(?:\s([A-Z]{3})\s([\d\.]+,\d{2})\s*([+-]{1})\s([\d\.]+,\d+))?\s([\d\.]+,\d{2})\s([+-]{1})(?:(.+)AUSLANDSEINSATZENTGELT\s([\d\.]+,\d{2})\s([+-]{1}))?/gi;
         const patternPrime = /([+-]{1})(\d+)\sAMAZON\s/gi;
 
         let match;
