@@ -8,75 +8,111 @@
 <button onclick="onButton()" style="background-color: crimson; color: white; width: 100px; height: 50px; margin: 10px; border: none;">GO!</button><br/>
 <textarea id="result" style="width: 100%; height: 200px"></textarea><br/>
 <div id="s-row">Total: <span id="total">0.00</span> EUR (should be <span id="ch-sum">0.00</span> EUR)</div>
-Punkte: <span id="amp">0</span><br/>
 <button onclick="download()" style="background-color: darkslategray; color: white; width: 100px; height: 50px; margin: 10px; border: none;">Download CSV!</button>
 <script>
     let rows = [];
+    let acc = '';
 
-    function onButton() {
-        rows = [
-            [
-                'Kaufdatum',
-                'Umsatz/Ort',
-                'Buchungsdatum',
-                'Waerung',
-                'Betrag',
-                'Kurs',
-                'Betrag in Euro',
-            ]
-        ];
-        const data = document.getElementById('data').value;
+    const headers = [
+        'Konto',
+        'Kaufdatum',
+        'Umsatz/Ort',
+        'Buchungsdatum',
+        'Betrag in Euro',
+    ];
 
-        const patternAbroad = /AUSLANDSEINSATZENTGELT\s([\d\.]+,\d{2})\s([+-]{1})/gi;
-        const patternTransaction = /(\d{2}\.\d{2}\.\d{4})\s(.+?)\s(\d{2}\.\d{2}\.\d{4})(?:\s([A-Z]{3})\s([\d\.]+,\d{2})\s*([+-]{1})\s([\d\.]+,\d+))?\s([\d\.]+,\d{2})\s([+-]{1})(?:(.+)AUSLANDSEINSATZENTGELT\s([\d\.]+,\d{2})\s([+-]{1}))?/gi;
-        const patternPrime = /([+-]{1})(\d+)\sAMAZON\s/gi;
+    const patternAcc = /Karte (\d{4}\s\d{2}XX\sXXXX\s\d{4})/i;
+    const patternLS = /ZAHLUNG-LASTSCHRIFT\s(\d{2}\.\d{2}\.\d{4})\s([\d\.]+,\d{2})\s([+-]{1})/i;
+    const patternTransaction = /(\d{2}\.\d{2}\.\d{4})\s(.+?)\s(\d{2}\.\d{2}\.\d{4})(?:\s([A-Z]{3})\s([\d\.]+,\d{2})\s*([+-]{1})\s([\d\.]+,\d+))?\s([\d\.]+,\d{2})\s([+-]{1})/i;
+    const patternAbroad = /AUSLANDSEINSATZENTGELT\s([\d\.]+,\d{2})\s([+-]{1})/i;
+    const patternAccState = /Neuer Kontostand ([\d\.,]+)\s([+-]{1})/i;
 
-        let match;
-        let total = 0;
+    function parseRow(row) {
+        let obj = {
+            flow: true
+        };
 
-        document.getElementById('result').value = '';
+        let match = patternAcc.exec(row);
 
-        while (match = patternTransaction.exec(data)) {
-            let sum = match[9] + match[8];
+        if (match) {
+            acc = match[1].replace(/\s/g, '').toLowerCase();
+            return;
+        }
 
-            sum = sum.replace('.', '');
-            total += parseFloat(sum.replace(',', '.'));
+        match = patternLS.exec(row);
+
+        if (match) {
+            obj.title = 'ZAHLUNG-LASTSCHRIFT';
+            obj.bookDate = match[1];
+            obj.amountEur = preparePrice(match[3] + match[2]);
+            obj.flow = false;
+            store(obj);
+            return;
+        }
+
+        match = patternAbroad.exec(row);
+
+        if (match) {
+            obj.title = 'AUSLANDSEINSATZENTGELT';
+            obj.amountEur = preparePrice(match[2] + match[1]);
+            store(obj);
+            return;
+        }
+
+        match = patternTransaction.exec(row);
+
+        if (match) {
+            obj.date = match[1];
+            obj.title = match[2];
+            obj.bookDate = match[3];
+            obj.amountEur = preparePrice(match[9] + match[8]);
 
             if (match[4] !== undefined) {
-                match[5] = match[6] + match[5];
-                match[5] = match[5].replace('.', '');
-            } else {
-                match[4] = '';
-                match[5] = '';
-                match[6] = '';
+                obj.currency = match[4];
+                obj.amount = preparePrice(match[6] + match[5]);
             }
 
             if (match[7] !== undefined) {
-                match[7] = match[7].replace('.', '');
-            } else {
-                match[7] = '';
+                obj.rate = match[7].replace('.', '');
             }
 
-            rows.push([
-                match[1],
-                match[2],
-                match[3],
-                match[4],
-                match[5],
-                match[7],
-                sum,
-            ]);
-            document.getElementById('result').value += match.slice(1,4).join(';') + ';' + match[4] + ';' + match[5] + ';' + match[7] + ';' + sum + "\n";
+            store(obj);
+            return;
         }
 
-        const patternAccState = /Neuer Kontostand ([\d\.,]+)\s([+-]{1})/gi;
-        match = patternAccState.exec(data);
-        let chSum = match[2] + match[1];
+        return;
+    }
+
+    function preparePrice(str) {
+        return str.replace('.', '').replace('+','');
+    }
+
+    function store(obj) {
+        obj.acc = acc;
+        rows.push(obj);
+    }
+
+    function onButton() {
+        rows = [];
+
+        const data = document.getElementById('data').value.replace(/(?:\r\n|\r|\n)/g, '#NL#').split('#NL#');
+
+        data.forEach(parseRow);
+
+        let total = 0;
+
+        rows.forEach(obj => {
+            if (obj.flow) {
+                total += parseFloat(obj.amountEur.replace(',', '.'));
+            }
+        });
+
+        let match = patternAccState.exec(data);
+        let chSum = preparePrice(match[2] + match[1]);
         chSum = parseFloat(chSum.replace('.', '').replace(',', '.'));
 
         total = total.toFixed(2);
         document.getElementById('total').innerText = total;
-
         document.getElementById('ch-sum').innerText = chSum;
 
         if (chSum == total) {
@@ -85,43 +121,53 @@ Punkte: <span id="amp">0</span><br/>
             document.getElementById('s-row').style.color = 'red';
         }
 
-        let aus = [];
+        display();
+    }
 
-        while (match = patternAbroad.exec(data)){
-            let geb = match[2] + match[1];
-            geb = geb.replace('.', '');
+    function display() {
+        let drows = [];
 
-            total += parseFloat(geb.replace(',', '.'));
+        rows.forEach(obj => {
+            drows.push(objToArr(obj).join(';'));
+        });
 
-            rows.push([
-                '',
-                'AUSLANDSEINSATZENTGELT',
-                '',
-                '',
-                '',
-                '',
-                geb,
-            ]);
-            document.getElementById('result').value += ';AUSLANDSEINSATZENTGELT;;;;;' + geb + "\n";
-
-            aus.push(geb);
-        }
-
-        let amp = 0;
-
-        while (match = patternPrime.exec(data)){
-            if (match[1] === '+') {
-                amp += parseInt(match[2]);
-            } else if (match[1] === '-') {
-                amp -= parseInt(match[2]);
-            }
-        }
-
-        document.getElementById('amp').innerText = amp;
+        document.getElementById('result').value = drows.join("\n");
     }
 
     function download() {
-        exportToCsv('invoice.csv', rows);
+        let drows = [
+            headers,
+        ];
+
+        rows.forEach(obj => {
+            drows.push(objToArr(obj));
+        });
+
+        exportToCsv('invoice.csv', drows);
+    }
+
+    function objToArr(obj) {
+        let rrows = [];
+
+        rrows.push(obj.acc ? obj.acc : '');
+        rrows.push(obj.date ? obj.date : '');
+
+        let title = obj.title ? obj.title : '';
+        if (obj.currency) {
+            title += ' ' + obj.currency;
+        }
+        if (obj.amount) {
+            title += ' ' + obj.amount;
+        }
+        if (obj.rate) {
+            title += ' ' + obj.rate;
+        }
+
+        rrows.push(title);
+        rrows.push(obj.bookDate ? obj.bookDate : '');
+        rrows.push(obj.amountEur ? obj.amountEur : '');
+
+        return rrows;
     }
 
     function exportToCsv(filename, rows) {
