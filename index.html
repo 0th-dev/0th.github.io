@@ -9,22 +9,36 @@ p {
   margin-top: 0px;
 }
 </style>
+  <script
+  src="https://code.jquery.com/jquery-3.5.1.min.js"
+  integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0="
+  crossorigin="anonymous"></script>
 </head>
 <body>
   <h1>Paths are made by walking</h1>
   <form>
-    <input type="text" id="imagename" value="" />
+    <img id="imagename" />
     <input type="button" id="btn" value="GO" />
 </form>
     <script type="text/javascript">
-        document.getElementById('btn').onclick = function() {
-            var val = document.getElementById('imagename').value,
-                src = 'https://products-sandbox.traviangames.com/images/8b18d686-2219-4976-ba59-02b07052c4d2/6ccec39d-2edb-4c63-9ec4-7e17e9909407.png',
-                img = document.createElement('img');
 
-            img.src = src;
-            document.body.appendChild(img);
-        }
+      const trigger = $('#btn');
+const wrapper = $('#imagename');
+const url = 'https://products-sandbox.traviangames.com/images/8b18d686-2219-4976-ba59-02b07052c4d2/6ccec39d-2edb-4c63-9ec4-7e17e9909407.png';
+
+trigger.on('click', () => {
+    $.ajax({
+       url,
+       xhrFields:{
+          responseType: 'blob'
+       },
+       success (data) {
+          const url = window.URL || window.webkitURL;
+          const src = url.createObjectURL(data);
+          wrapper.attr('src', src);
+       }
+   });
+});
     </script>
 </body>
 </html>
