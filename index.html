@@ -16,29 +16,5 @@ p {
 </head>
 <body>
   <h1>Paths are made by walking</h1>
-  <form>
-    <img id="imagename" />
-    <input type="button" id="btn" value="GO" />
-</form>
-    <script type="text/javascript">
-
-      const trigger = $('#btn');
-const wrapper = $('#imagename');
-const url = 'https://products-dev.traviangames.com/images/bdd8ebf1-2fb1-40c8-9ab4-bb4641968f9c/9ee8d573-c4b5-4bd7-a3c6-c7347dc8f206.png';
-
-trigger.on('click', () => {
-    $.ajax({
-       url,
-       xhrFields:{
-          responseType: 'blob'
-       },
-       success (data) {
-          const url = window.URL || window.webkitURL;
-          const src = url.createObjectURL(data);
-          wrapper.attr('src', src);
-       }
-   });
-});
-    </script>
 </body>
 </html>
